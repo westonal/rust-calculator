@@ -1,6 +1,7 @@
 use core::fmt;
 use core::fmt::Formatter;
 use std::collections::VecDeque;
+use std::str::Chars;
 use crate::shunting_yard::{Associativity, ShuntingYardToken, ShuntType};
 
 enum Mode {
@@ -133,7 +134,7 @@ impl<I: Iterator<Item=char>> Iterator for TokenStream<I> {
     }
 }
 
-pub trait Tokenize<R: Iterator<Item=Token>>: Iterator<Item=char> {
+pub trait Tokenize<R: Iterator<Item=Token>> {
     fn tokenize(self) -> R;
 }
 

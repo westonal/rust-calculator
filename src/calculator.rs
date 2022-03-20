@@ -7,19 +7,19 @@ use crate::tokenizer::{Token, Tokenize};
 pub struct Calculator {}
 
 impl Calculator {
-    pub(crate) fn calculate<T: FromStr + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T>>(&self, expression: &str) -> T {
-        let shunted = expression.chars().tokenize().shunt();
-
+    pub(crate) fn calculate<T>(&self, expression: &str) -> Result<T, String>
+    where T: FromStr + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T>
+    {
         let mut stack = VecDeque::new();
-        shunted.into_iter().for_each(|t| {
-            match t {
+        for token in expression.chars().tokenize().shunt() {
+            match token {
                 Token::T(v) => {
-                    stack.push_back(v.parse::<T>().unwrap_or_else(|_| panic!()));
+                    stack.push_back(v.parse::<T>().map_err(|_| format!("Cannot parse \"{}\"", v))?);
                 }
                 _ => {
-                    let right = stack.pop_back().unwrap();
-                    let left = stack.pop_back().unwrap();
-                    match t {
+                    let right = stack.pop_back().ok_or("No rhs")?;
+                    let left = stack.pop_back().ok_or("No lhs")?;
+                    match token {
                         Token::T(_) => { panic!() }
                         Token::Plus => { stack.push_back(left + right); }
                         Token::Minus => { stack.push_back(left - right); }
@@ -32,9 +32,9 @@ impl Calculator {
                     }
                 }
             }
-        });
+        };
 
-        stack.pop_back().unwrap()
+        Ok(stack.pop_back().unwrap())
     }
 }
 
@@ -44,51 +44,51 @@ mod calculator_tests {
 
     #[test]
     fn constant() {
-        assert_eq!(1, Calculator {}.calculate("1"))
+        assert_eq!(Ok(1), Calculator {}.calculate("1"));
     }
 
     #[test]
     pub fn add() {
-        assert_eq!(3, Calculator {}.calculate("1+2"))
+        assert_eq!(Ok(3), Calculator {}.calculate("1+2"))
     }
 
     #[test]
     pub fn subtract() {
-        assert_eq!(2, Calculator {}.calculate("5-3"))
+        assert_eq!(Ok(2), Calculator {}.calculate("5-3"))
     }
 
     #[test]
     pub fn multiply() {
-        assert_eq!(18, Calculator {}.calculate("3*6"))
+        assert_eq!(Ok(18), Calculator {}.calculate("3*6"))
     }
 
     #[test]
     pub fn subtract_into_negative() {
-        assert_eq!(-1, Calculator {}.calculate("2-3"))
+        assert_eq!(Ok(-1), Calculator {}.calculate("2-3"))
     }
 
     #[test]
     pub fn integer_divide() {
-        assert_eq!(3, Calculator {}.calculate("7/2"))
+        assert_eq!(Ok(3), Calculator {}.calculate("7/2"))
     }
 
     #[test]
     pub fn floating_point_divide() {
-        assert_eq!(3.5, Calculator {}.calculate("7/2"))
+        assert_eq!(Ok(3.5), Calculator {}.calculate("7/2"))
     }
 
     #[test]
     pub fn unnecessary_brackets() {
-        assert_eq!(7, Calculator {}.calculate("1+(3*2)"))
+        assert_eq!(Ok(7), Calculator {}.calculate("1+(3*2)"))
     }
 
     #[test]
     pub fn brackets_changing_precedence() {
-        assert_eq!(8, Calculator {}.calculate("(1+3)*2"))
+        assert_eq!(Ok(8), Calculator {}.calculate("(1+3)*2"))
     }
 
     #[test]
     pub fn two_braces() {
-        assert_eq!(12, Calculator {}.calculate("(1+3)*(5-2)"))
+        assert_eq!(Ok(12), Calculator {}.calculate("(1+3)*(5-2)"))
     }
 }
