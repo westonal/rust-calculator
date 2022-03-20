@@ -47,7 +47,7 @@ impl<T: ShuntingYardToken, I: Iterator<Item=T>> Shunt<T, I> for I {
 
 pub struct ShuntingYard<T: ShuntingYardToken> {
     output_queue: VecDeque<T>,
-    operator_stack: Vec<(T, ShuntOperator)>,
+    operator_stack: Vec<(T, ShuntType)>,
 }
 
 impl<T: ShuntingYardToken> Default for ShuntingYard<T> {
@@ -72,6 +72,8 @@ pub enum ShuntType {
         associativity: Associativity,
         precedence: u8,
     },
+    OpenBrace,
+    CloseBrace,
 }
 
 pub trait ShuntingYardToken {
@@ -88,21 +90,53 @@ impl<T: ShuntingYardToken> ShuntingYard<T> {
 
     pub fn push(&mut self, token: T) {
         let shunt_type = token.shunt_type();
-        match shunt_type {
+        match &shunt_type {
             ShuntType::Operand => self.output_queue.push_back(token),
-            ShuntType::Operator { associativity: o1associativity, precedence: o1precedence } => {
+            ShuntType::Operator { associativity: _o1associativity, precedence: o1precedence } => {
                 while !self.operator_stack.is_empty() {
                     let (_, operator2) = self.operator_stack.last().unwrap();
-                    let o2associativity = &operator2.associativity;
-                    let o2precedence = &operator2.precedence;
-                    if o2precedence > &o1precedence || o2precedence == &o1precedence && o2associativity == &Associativity::Left {
-                        let (token, _) = self.operator_stack.pop().unwrap();
-                        self.output_queue.push_back(token);
-                    } else {
-                        break;
+                    match operator2 {
+                        ShuntType::Operand => panic!("Operand in operator stack"),
+                        ShuntType::Operator { associativity: o2associativity, precedence: o2precedence } => {
+                            if o2precedence > o1precedence || o2precedence == o1precedence && o2associativity == &Associativity::Left {
+                                let (token, _) = self.operator_stack.pop().unwrap();
+                                self.output_queue.push_back(token);
+                            } else {
+                                break;
+                            }
+                        }
+                        ShuntType::OpenBrace => {
+                            break;
+                        }
+                        ShuntType::CloseBrace => panic!("CloseBrace in operator stack"),
                     }
                 }
-                self.operator_stack.push((token, ShuntOperator { associativity: o1associativity, precedence: o1precedence }));
+                self.operator_stack.push((token, shunt_type));
+            }
+            ShuntType::OpenBrace => {
+                self.operator_stack.push((token, shunt_type))
+            }
+            ShuntType::CloseBrace => {
+                while !self.operator_stack.is_empty() {
+                    let (_, operator2) = self.operator_stack.last().unwrap();
+                    if let ShuntType::OpenBrace = operator2 {
+                        // Discard
+                        self.operator_stack.pop();
+                        break;
+                    }
+                    let (token, _) = self.operator_stack.pop().unwrap();
+                    self.output_queue.push_back(token);
+                    // TODO, should stop on '(', also understand where that goes... not disposed here
+
+                    //while the operator at the top of the operator stack is not a left parenthesis:
+                    //             {assert the operator stack is not empty}
+                    //             /* If the stack runs out without finding a left parenthesis, then there are mismatched parentheses. */
+                    //             pop the operator from the operator stack into the output queue
+                    //         {assert there is a left parenthesis at the top of the operator stack}
+                    //         pop the left parenthesis from the operator stack and discard it
+                    //         if there is a function token at the top of the operator stack, then:
+                    //             pop the function from the operator stack into the output queue
+                }
             }
         }
     }
@@ -152,6 +186,8 @@ mod shunting_yard_tests {
                 "+" => ShuntType::Operator { associativity: Associativity::Left, precedence: 0 },
                 "-" => ShuntType::Operator { associativity: Associativity::Left, precedence: 0 },
                 "*" => ShuntType::Operator { associativity: Associativity::Left, precedence: 1 },
+                "(" => ShuntType::OpenBrace,
+                ")" => ShuntType::CloseBrace,
                 _ => ShuntType::Operand
             }
         }
@@ -226,5 +262,44 @@ mod shunting_yard_tests {
         yard.push("-");
         yard.push("D");
         assert_eq!(vec!["A", "B", "C", "*", "+", "D", "-"], yard.into_vec());
+    }
+
+    #[test]
+    fn unnecessary_bracket_test() {
+        let mut yard = ShuntingYard::new();
+        yard.push("1");
+        yard.push("+");
+        yard.push("(");
+        yard.push("2");
+        yard.push("*");
+        yard.push("3");
+        yard.push(")");
+        assert_eq!(vec!["1", "2", "3", "*", "+"], yard.into_vec());
+    }
+
+    #[test]
+    fn bracket_test() {
+        let mut yard = ShuntingYard::new();
+        yard.push("(");
+        yard.push("1");
+        yard.push("+");
+        yard.push("2");
+        yard.push(")");
+        yard.push("*");
+        yard.push("3");
+        assert_eq!(vec!["1", "2", "+", "3", "*"], yard.into_vec());
+    }
+
+    #[test]
+    fn bracket_test_preceeding_operators() {
+        let mut yard = ShuntingYard::new();
+        yard.push("3");
+        yard.push("*");
+        yard.push("(");
+        yard.push("1");
+        yard.push("+");
+        yard.push("2");
+        yard.push(")");
+        assert_eq!(vec!["3", "1", "2", "+", "*"], yard.into_vec());
     }
 }

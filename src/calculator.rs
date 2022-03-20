@@ -25,6 +25,10 @@ impl Calculator {
                         Token::Minus => { stack.push_back(left - right); }
                         Token::Multiply => { stack.push_back(left * right); }
                         Token::Divide => { stack.push_back(left / right); }
+                        // TODO: have different set of tokens for input and output?
+                        //  Pain because will have to map them. This might be the cleanest solution
+                        Token::OpenBrace => { panic!() }
+                        Token::CloseBrace => { panic!() }
                     }
                 }
             }
@@ -71,5 +75,20 @@ mod calculator_tests {
     #[test]
     pub fn floating_point_divide() {
         assert_eq!(3.5, Calculator {}.calculate("7/2"))
+    }
+
+    #[test]
+    pub fn unnecessary_brackets() {
+        assert_eq!(7, Calculator {}.calculate("1+(3*2)"))
+    }
+
+    #[test]
+    pub fn brackets_changing_precedence() {
+        assert_eq!(8, Calculator {}.calculate("(1+3)*2"))
+    }
+
+    #[test]
+    pub fn two_braces() {
+        assert_eq!(12, Calculator {}.calculate("(1+3)*(5-2)"))
     }
 }

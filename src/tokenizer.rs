@@ -15,6 +15,8 @@ pub enum Token {
     Minus,
     Multiply,
     Divide,
+    OpenBrace,
+    CloseBrace,
 }
 
 impl fmt::Display for Token {
@@ -25,6 +27,8 @@ impl fmt::Display for Token {
             Token::Minus => f.write_str("-"),
             Token::Multiply => f.write_str("*"),
             Token::Divide => f.write_str("/"),
+            Token::OpenBrace => f.write_str("("),
+            Token::CloseBrace => f.write_str(")"),
         }
     }
 }
@@ -58,6 +62,10 @@ impl TokenizerState {
                 self.tokens.push_back(Token::Plus)
             } else if string.as_str() == "-" {
                 self.tokens.push_back(Token::Minus)
+            } else if string.as_str() == "(" {
+                self.tokens.push_back(Token::OpenBrace)
+            } else if string.as_str() == ")" {
+                self.tokens.push_back(Token::CloseBrace)
             } else if string.as_str() == "*" || string.as_str() == "x" {
                 self.tokens.push_back(Token::Multiply)
             } else if string.as_str() == "/" {
@@ -78,7 +86,7 @@ impl TokenizerState {
         match self.mode {
             Mode::None => {
                 // TODO: Annoying repeat 2/2
-                if c == '+' || c == '-' || c == '*' || c == 'x' || c == '/' {
+                if c == '+' || c == '-' || c == '*' || c == 'x' || c == '/' || c == '(' || c == ')' {
                     self.end_node();
                     self.current_token.push(c);
                     self.end_node();
@@ -172,6 +180,16 @@ mod tokenizer_tests {
         expect_token("/", &Token::Divide);
     }
 
+    #[test]
+    fn open_brace() {
+        expect_token("(", &Token::OpenBrace);
+    }
+
+    #[test]
+    fn close_brace() {
+        expect_token(")", &Token::CloseBrace);
+    }
+
     fn expect_token(input: &str, expected: &Token) {
         let tokens = input.chars().into_iter().tokenize();
         let map: Vec<Token> = tokens.into_iter().collect();
@@ -202,6 +220,8 @@ impl ShuntingYardToken for Token {
             Token::Minus => ShuntType::Operator { associativity: Associativity::Left, precedence: 0 },
             Token::Multiply => ShuntType::Operator { associativity: Associativity::Left, precedence: 1 },
             Token::Divide => ShuntType::Operator { associativity: Associativity::Left, precedence: 1 },
+            Token::OpenBrace => ShuntType::OpenBrace,
+            Token::CloseBrace => ShuntType::CloseBrace,
         }
     }
 }
