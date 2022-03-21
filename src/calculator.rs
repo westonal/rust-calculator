@@ -6,35 +6,86 @@ use crate::tokenizer::{Token, Tokenize};
 
 pub struct Calculator {}
 
+enum ParsedToken<T, S> {
+    Operand(T),
+    Operator(S),
+}
+
+struct Memory<T> {
+    stack: VecDeque<T>,
+}
+
+impl<T> Memory<T> {
+    fn new() -> Self {
+        Self {
+            stack: VecDeque::new()
+        }
+    }
+
+    fn push(&mut self, t: T)
+        where T: FromStr + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T>
+    {
+        self.stack.push_back(t);
+    }
+
+    fn push_operator(&mut self, t: Token) -> Result<(), String>
+        where T: FromStr + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T>
+    {
+        let right = self.stack.pop_back().ok_or("No rhs")?;
+        let left = self.stack.pop_back().ok_or("No lhs")?;
+        match t {
+            Token::T(_) => { panic!() }
+            Token::Plus => { self.stack.push_back(left + right); }
+            Token::Minus => { self.stack.push_back(left - right); }
+            Token::Multiply => { self.stack.push_back(left * right); }
+            Token::Divide => { self.stack.push_back(left / right); }
+            // TODO: have different set of tokens for input and output?
+            //  Pain because will have to map them. This might be the cleanest solution
+            Token::OpenBrace => { panic!() }
+            Token::CloseBrace => { panic!() }
+        };
+        Ok(())
+    }
+
+    fn top(mut self) -> Result<T, String> {
+        self.stack.pop_back().ok_or("Empty stack".to_string()) // TODO: understand why to_string here but not above in "No rhs"/"no lhs"?
+    }
+}
+
 impl Calculator {
     pub(crate) fn calculate<T>(&self, expression: &str) -> Result<T, String>
-    where T: FromStr + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T>
+        where T: FromStr + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T>
     {
-        let mut stack = VecDeque::new();
-        for token in expression.chars().tokenize().shunt() {
-            match token {
-                Token::T(v) => {
-                    stack.push_back(v.parse::<T>().map_err(|_| format!("Cannot parse \"{}\"", v))?);
-                }
-                _ => {
-                    let right = stack.pop_back().ok_or("No rhs")?;
-                    let left = stack.pop_back().ok_or("No lhs")?;
-                    match token {
-                        Token::T(_) => { panic!() }
-                        Token::Plus => { stack.push_back(left + right); }
-                        Token::Minus => { stack.push_back(left - right); }
-                        Token::Multiply => { stack.push_back(left * right); }
-                        Token::Divide => { stack.push_back(left / right); }
-                        // TODO: have different set of tokens for input and output?
-                        //  Pain because will have to map them. This might be the cleanest solution
-                        Token::OpenBrace => { panic!() }
-                        Token::CloseBrace => { panic!() }
+        let map =
+            expression
+                .chars()
+                .tokenize()
+                .shunt()
+                .map(|t| {
+                    match t {
+                        Token::T(v) => {
+                            let result: Result<T, String> = v.parse::<T>().map_err(|_| format!("Cannot parse \"{}\"", v));
+                            result.map(|f| ParsedToken::Operand(f))
+                        }
+                        _ => {
+                            Ok(ParsedToken::Operator(t))
+                        }
                     }
-                }
-            }
-        };
+                })
+                .collect::<Result<Vec<ParsedToken<T, Token>>, String>>();
 
-        Ok(stack.pop_back().unwrap())
+        let memory = map?.into_iter()
+            .fold(Ok(Memory::new()),
+                  |mut memory: Result<Memory<T>, String>, token| {
+                      if let Ok(memory) = memory.as_mut() {
+                          match token {
+                              ParsedToken::Operand(operand) => memory.push(operand),
+                              ParsedToken::Operator(o) => memory.push_operator(o)?,
+                          }
+                      }
+                      memory
+                  })?;
+        memory.top()
     }
 }
 
