@@ -1,9 +1,7 @@
 extern crate core;
 
-use std::{env, io};
-use std::io::Write;
-use rustyline::config::Configurer;
-use rustyline::{ColorMode, Editor};
+use std::env;
+use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use crate::calculator::Calculator;
 

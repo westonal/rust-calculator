@@ -15,6 +15,35 @@ struct Memory<T> {
     stack: VecDeque<T>,
 }
 
+pub trait CommonMath<T>: Sized + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T> {}
+
+pub trait Pow {
+    type Output;
+    fn pow(self, rhs: Self) -> Self;
+}
+
+impl Pow for f64 {
+    type Output = f64;
+
+    fn pow(self, rhs: Self) -> Self {
+        self.powf(rhs)
+    }
+}
+
+impl Pow for i32 {
+    type Output = i32;
+
+    fn pow(self, rhs: Self) -> Self {
+        self.pow(rhs.try_into::<>().expect(""))
+    }
+}
+
+pub trait Math<T>: CommonMath<T> + Pow {}
+
+impl<T: Sized + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T> + Pow<Output=T>> CommonMath<T> for T {}
+
+impl<T: CommonMath<T> + Pow> Math<T> for T {}
+
 impl<T> Memory<T> {
     fn new() -> Self {
         Self {
@@ -22,14 +51,12 @@ impl<T> Memory<T> {
         }
     }
 
-    fn push(&mut self, t: T)
-        where T: FromStr + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T>
-    {
+    fn push(&mut self, t: T) {
         self.stack.push_back(t);
     }
 
     fn push_operator(&mut self, t: Token) -> Result<(), String>
-        where T: FromStr + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T>
+        where T: FromStr + Math<T>
     {
         let right = self.stack.pop_back().ok_or("No rhs")?;
         let left = self.stack.pop_back().ok_or("No lhs")?;
@@ -39,6 +66,7 @@ impl<T> Memory<T> {
             Token::Minus => { self.stack.push_back(left - right); }
             Token::Multiply => { self.stack.push_back(left * right); }
             Token::Divide => { self.stack.push_back(left / right); }
+            Token::Power => { self.stack.push_back(left.pow(right)); }
             // TODO: have different set of tokens for input and output?
             //  Pain because will have to map them. This might be the cleanest solution
             Token::OpenBrace => { panic!() }
@@ -48,13 +76,13 @@ impl<T> Memory<T> {
     }
 
     fn top(mut self) -> Result<T, String> {
-        self.stack.pop_back().ok_or("Empty stack".to_string()) // TODO: understand why to_string here but not above in "No rhs"/"no lhs"?
+        self.stack.pop_back().ok_or_else(|| "Empty stack".to_string())
     }
 }
 
 impl Calculator {
     pub(crate) fn calculate<T>(&self, expression: &str) -> Result<T, String>
-        where T: FromStr + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T>
+        where T: FromStr + Math<T>
     {
         let map =
             expression
@@ -91,7 +119,7 @@ impl Calculator {
 
 #[cfg(test)]
 mod calculator_tests {
-    use crate::calculator::Calculator;
+    use super::*;
 
     #[test]
     fn constant() {
@@ -115,7 +143,7 @@ mod calculator_tests {
 
     #[test]
     pub fn subtract_into_negative() {
-        assert_eq!(Ok(-1), Calculator {}.calculate("2-3"))
+        assert_eq!(Ok(-1i32), Calculator {}.calculate("2-3"))
     }
 
     #[test]
@@ -141,5 +169,22 @@ mod calculator_tests {
     #[test]
     pub fn two_braces() {
         assert_eq!(Ok(12), Calculator {}.calculate("(1+3)*(5-2)"))
+    }
+
+    #[test]
+    pub fn power() {
+        assert_eq!(Ok(16), Calculator {}.calculate("2^4"))
+    }
+
+    #[test]
+    pub fn power_with_right_multiplier() {
+        let calculator = Calculator {};
+        assert_eq!(calculator.calculate::<i32>("(2^4)*2"), calculator.calculate("2^4*2"))
+    }
+
+    #[test]
+    pub fn power_with_left_multiplier() {
+        let calculator = Calculator {};
+        assert_eq!(calculator.calculate::<i32>("3*(2^4)"), calculator.calculate("3*2^4"))
     }
 }

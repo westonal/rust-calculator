@@ -4,6 +4,7 @@ Features
 
 - [x] Addition/Subtraction
 - [x] Multiplication/Division
+  - [ ] Assume multiplication when two operands are adjacent e.g. (3)(4) = 3(4) = 12
 - [ ] Braces
   - [x] Basic
   - [x] Nested
@@ -32,3 +33,12 @@ Features
   - [ ] Memory
     - [ ] Variables
     - [ ] User functions
+
+TODO
+==
+
+ - [ ] After calc, ensure stack is exactly 1
+ - [ ] Errors
+   - [x] Token parse error
+   - [ ] Mismatched brackets
+   - [ ] Stack size

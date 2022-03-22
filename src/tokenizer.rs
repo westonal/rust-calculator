@@ -16,6 +16,7 @@ pub enum Token {
     Minus,
     Multiply,
     Divide,
+    Power,
     OpenBrace,
     CloseBrace,
 }
@@ -28,6 +29,7 @@ impl fmt::Display for Token {
             Token::Minus => f.write_str("-"),
             Token::Multiply => f.write_str("*"),
             Token::Divide => f.write_str("/"),
+            Token::Power => f.write_str("^"),
             Token::OpenBrace => f.write_str("("),
             Token::CloseBrace => f.write_str(")"),
         }
@@ -71,6 +73,8 @@ impl TokenizerState {
                 self.tokens.push_back(Token::Multiply)
             } else if string.as_str() == "/" {
                 self.tokens.push_back(Token::Divide)
+            } else if string.as_str() == "^" {
+                self.tokens.push_back(Token::Power)
             } else {
                 self.tokens.push_back(Token::T(string));
             }
@@ -87,7 +91,7 @@ impl TokenizerState {
         match self.mode {
             Mode::None => {
                 // TODO: Annoying repeat 2/2
-                if c == '+' || c == '-' || c == '*' || c == 'x' || c == '/' || c == '(' || c == ')' {
+                if c == '+' || c == '-' || c == '*' || c == 'x' || c == '/' || c == '^' || c == '(' || c == ')' {
                     self.end_node();
                     self.current_token.push(c);
                     self.end_node();
@@ -182,6 +186,11 @@ mod tokenizer_tests {
     }
 
     #[test]
+    fn power() {
+        expect_token("^", &Token::Power);
+    }
+
+    #[test]
     fn open_brace() {
         expect_token("(", &Token::OpenBrace);
     }
@@ -221,6 +230,7 @@ impl ShuntingYardToken for Token {
             Token::Minus => ShuntType::Operator { associativity: Associativity::Left, precedence: 0 },
             Token::Multiply => ShuntType::Operator { associativity: Associativity::Left, precedence: 1 },
             Token::Divide => ShuntType::Operator { associativity: Associativity::Left, precedence: 1 },
+            Token::Power => ShuntType::Operator { associativity: Associativity::Left, precedence: 2 },
             Token::OpenBrace => ShuntType::OpenBrace,
             Token::CloseBrace => ShuntType::CloseBrace,
         }
