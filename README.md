@@ -14,10 +14,10 @@ Features
 - [ ] Roots
 - [ ] Functions
   - [ ] Trigonometry
-- [ ] Constants
-  - [ ] pi
-  - [ ] [tau](https://tauday.com/)
-  - [ ] e
+- [x] Constants (in f64 context)
+  - [x] pi
+  - [x] [tau](https://tauday.com/)
+  - [x] e
 - [ ] Multidimensional
   - [ ] Complex numbers
   - [ ] Vectors

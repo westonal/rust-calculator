@@ -44,6 +44,37 @@ impl<T: Sized + Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T> + 
 
 impl<T: CommonMath<T> + Pow> Math<T> for T {}
 
+pub trait ParseOperand {
+    fn parse_operand<F: FromStrValue>(self) -> Result<F, F::Err>;
+}
+
+pub trait FromStrValue: FromStr {
+    fn from_str(s: &str) -> Result<Self, Self::Err>;
+}
+
+impl ParseOperand for &str {
+    fn parse_operand<F: FromStrValue>(self) -> Result<F, F::Err> {
+        FromStrValue::from_str(self)
+    }
+}
+
+impl FromStrValue for i32 {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        s.parse()
+    }
+}
+
+impl FromStrValue for f64 {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "tau" => Ok(std::f64::consts::TAU),
+            "pi" => Ok(std::f64::consts::PI),
+            "e" => Ok(std::f64::consts::E),
+            _ => s.parse()
+        }
+    }
+}
+
 impl<T> Memory<T> {
     fn new() -> Self {
         Self {
@@ -56,7 +87,7 @@ impl<T> Memory<T> {
     }
 
     fn push_operator(&mut self, t: Token) -> Result<(), String>
-        where T: FromStr + Math<T>
+        where T: FromStrValue + Math<T>
     {
         let right = self.stack.pop_back().ok_or("No rhs")?;
         let left = self.stack.pop_back().ok_or("No lhs")?;
@@ -82,7 +113,7 @@ impl<T> Memory<T> {
 
 impl Calculator {
     pub(crate) fn calculate<T>(&self, expression: &str) -> Result<T, String>
-        where T: FromStr + Math<T>
+        where T: FromStrValue + Math<T>
     {
         let map =
             expression
@@ -92,7 +123,7 @@ impl Calculator {
                 .map(|t| {
                     match t {
                         Token::T(v) => {
-                            let result: Result<T, String> = v.parse::<T>().map_err(|_| format!("Cannot parse \"{}\"", v));
+                            let result: Result<T, String> = v.parse_operand::<T>().map_err(|_| format!("Cannot parse \"{}\"", v));
                             result.map(|f| ParsedToken::Operand(f))
                         }
                         _ => {
@@ -186,5 +217,20 @@ mod calculator_tests {
     pub fn power_with_left_multiplier() {
         let calculator = Calculator {};
         assert_eq!(calculator.calculate::<i32>("3*(2^4)"), calculator.calculate("3*2^4"))
+    }
+
+    #[test]
+    pub fn tau() {
+        assert_eq!(Ok(std::f64::consts::TAU), Calculator {}.calculate("tau"))
+    }
+
+    #[test]
+    pub fn pi() {
+        assert_eq!(Ok(std::f64::consts::PI), Calculator {}.calculate("pi"))
+    }
+
+    #[test]
+    pub fn e() {
+        assert_eq!(Ok(std::f64::consts::E), Calculator {}.calculate("e"))
     }
 }
