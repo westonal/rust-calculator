@@ -1,19 +1,26 @@
 extern crate core;
 
 use std::env;
+use std::fmt::Display;
+use std::ops::Div;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
-use crate::calculator::Calculator;
+use crate::calculator::{Calculator, FromStrValue};
+use crate::complex::Complex;
+use crate::math::Math;
 
 mod shunting_yard;
 mod tokenizer;
 mod calculator;
+mod math;
+mod complex;
 
 const BACKSPACE: char = 8u8 as char;
 
 fn main() {
     if env::args().count() == 1 {
-        terminal_mode();
+        //terminal_mode::<f64>();
+        terminal_mode::<Complex<f64>>();
     } else {
         let string = env::args().skip(1).collect::<Vec<String>>().join(" ");
         let calculator = Calculator {};
@@ -30,7 +37,7 @@ fn main() {
     }
 }
 
-fn terminal_mode() {
+fn terminal_mode<T: Math<T> + Display + FromStrValue>() {
     // `()` can be used when no completer is required
     let mut editor = Editor::<()>::new();
     if editor.load_history("history.txt").is_err() {
@@ -64,7 +71,7 @@ fn terminal_mode() {
                 }
                 editor.add_history_entry(line.as_str());
                 let calculator = Calculator {};
-                let result = calculator.calculate::<f64>(&line);
+                let result = calculator.calculate::<T>(&line);
                 match result {
                     Ok(value) => {
                         println!("{}\r{}{} = {}", BACKSPACE, prompt, line, value);

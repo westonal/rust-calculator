@@ -3,6 +3,7 @@ Features
 ===
 
 - [x] Addition/Subtraction
+  - [ ] Unary minus
 - [x] Multiplication/Division
   - [x] Assume multiplication when two operands are adjacent e.g. (3)(4) = 3(4) = 12, 2pi = tau
 - [ ] Braces
@@ -19,7 +20,7 @@ Features
   - [x] [tau](https://tauday.com/)
   - [x] e
 - [ ] Multidimensional
-  - [ ] Complex numbers
+  - [x] Complex numbers
   - [ ] Vectors
   - [ ] Matrices
 
