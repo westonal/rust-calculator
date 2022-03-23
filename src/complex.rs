@@ -2,18 +2,86 @@ use std::fmt::{Display, Formatter, Write};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::str::FromStr;
 use crate::FromStrValue;
-use crate::math::{CommonMath, Math, Pow};
+use crate::math::{CommonMath, Pow};
+
+#[cfg(test)]
+mod complex_number_tests {
+    use super::*;
+
+    #[test]
+    fn zero() {
+        let complex = <Complex<f64> as Zero>::zero();
+        assert_eq!((0f64, 0f64), (complex.real, complex.imaginary));
+        assert!(!complex.has_real());
+        assert!(!complex.has_imaginary());
+    }
+
+    #[test]
+    fn one_real() {
+        let complex = Complex::new(1f64, 0f64);
+        assert_eq!((1f64, 0f64), (complex.real, complex.imaginary));
+        assert!(complex.has_real());
+        assert!(!complex.has_imaginary());
+    }
+
+    #[test]
+    fn one_imaginary() {
+        let complex = Complex::new(0f64, 1f64);
+        assert_eq!((0f64, 1f64), (complex.real, complex.imaginary));
+        assert!(!complex.has_real());
+        assert!(complex.has_imaginary());
+    }
+}
 
 pub struct Complex<T> {
     real: T,
     imaginary: T,
 }
 
-trait Zero {
+impl<T> Complex<T> {
+    pub fn new(real: T, imaginary: T) -> Self {
+        Self {
+            real,
+            imaginary,
+        }
+    }
+
+    pub fn real(real: T) -> Self where T: Zero {
+        Self {
+            real,
+            imaginary: T::zero(),
+        }
+    }
+}
+
+impl<T: Zero + PartialEq> Complex<T> {
+    pub fn has_real(&self) -> bool {
+        T::zero() != self.real
+    }
+
+    pub fn has_imaginary(&self) -> bool {
+        T::zero() != self.imaginary
+    }
+}
+
+impl<T: Zero> Zero for Complex<T> {
+    fn zero() -> Self {
+        Self {
+            real: T::zero(),
+            imaginary: T::zero(),
+        }
+    }
+}
+
+impl<T> Complex<T> {
+    fn has_complex() {}
+}
+
+pub trait Zero {
     fn zero() -> Self;
 }
 
-trait One {
+pub trait One {
     fn one() -> Self;
 }
 
@@ -95,22 +163,26 @@ impl Pow for Complex<f64> {
     type Output = ();
 
     fn pow(self, rhs: Self) -> Self {
-        todo!()
+        if rhs.has_imaginary() || self.has_imaginary() {
+            todo!()
+        } else {
+            Complex::real(self.real.pow(rhs.real))
+        }
     }
 }
 
-impl<T: FromStr + Default> FromStr for Complex<T> {
+impl<T: FromStrValue + Default> FromStr for Complex<T> {
     type Err = <T as FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self {
-            real: s.parse()?,
+            real: <T as FromStrValue>::from_str(s)?,
             imaginary: Default::default(),
         })
     }
 }
 
-impl<T: FromStr + Default + One> FromStrValue for Complex<T> {
+impl<T: FromStrValue + Default + One> FromStrValue for Complex<T> {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s == "i" {
             Ok(Self {
@@ -125,21 +197,24 @@ impl<T: FromStr + Default + One> FromStrValue for Complex<T> {
 
 impl<T: Display + PartialEq + Zero + One + PartialOrd + Neg<Output=T> + Copy> Display for Complex<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let has_real = self.real != <T as Zero>::zero();
-        let has_imaginary = self.imaginary != <T as Zero>::zero();
+        let has_real = self.has_real();
+        let has_imaginary = self.has_imaginary();
         if has_real {
             f.write_fmt(format_args!("{}", self.real))?;
         }
         if has_imaginary {
-            if self.imaginary > <T as Zero>::zero() {
+            if self.imaginary > T::zero() {
                 if has_real {
-                    f.write_char('+')?;
+                    f.write_str(" + ")?;
                 }
             } else {
+                if has_real {
+                    f.write_char(' ')?;
+                }
                 f.write_char('-')?;
             }
             let mut img = self.imaginary;
-            if img < <T as Zero>::zero() {
+            if img < T::zero() {
                 img = -img;
             }
             if img != <T as One>::one() {

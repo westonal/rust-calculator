@@ -12,6 +12,8 @@ Features
   - [ ] Match checking
   - [ ] Completion/Correction
 - [ ] Powers
+  - [x] Real
+  - [ ] Complex
 - [ ] Roots
 - [ ] Functions
   - [ ] Trigonometry
@@ -23,6 +25,10 @@ Features
   - [x] Complex numbers
   - [ ] Vectors
   - [ ] Matrices
+
+- [ ] Expression entry
+  - [x] Ignore whitespace
+  - [ ] Show corrected brackets
 
 - [ ] CLI Terminal mode
   - [x] Basic

@@ -83,6 +83,10 @@ impl TokenizerState {
     fn push_char(&mut self, c: char) {
         match self.mode {
             Mode::None => {
+                if c ==' ' {
+                    self.end_node();
+                    return;
+                }
                 // TODO: Annoying repeat 2/2
                 if c == '+' || c == '-' || c == '*' || c == 'x' || c == '/' || c == '^' || c == '(' || c == ')' {
                     self.end_node();
@@ -310,5 +314,45 @@ mod tokenizer_state_test {
         tokenizer.push_char('b');
         let tokens = tokenizer.complete();
         assert_eq!(vec![T("12".to_string()), T("ab".to_string())], tokens);
+    }
+
+    #[test]
+    fn ignore_white_space() {
+        let mut tokenizer = TokenizerState::new();
+        tokenizer.push_char('1');
+        tokenizer.push_char(' ');
+        tokenizer.push_char('2');
+        let tokens = tokenizer.complete();
+        assert_eq!(vec![
+            T("1".to_string()),
+            T("2".to_string()),
+        ], tokens);
+    }
+
+    #[test]
+    fn ignore_white_space_between_letters() {
+        let mut tokenizer = TokenizerState::new();
+        tokenizer.push_char('a');
+        tokenizer.push_char(' ');
+        tokenizer.push_char('b');
+        let tokens = tokenizer.complete();
+        assert_eq!(vec![
+            T("a".to_string()),
+            T("b".to_string()),
+        ], tokens);
+    }
+
+    #[test]
+    fn ignore_double_white_space_between_letters() {
+        let mut tokenizer = TokenizerState::new();
+        tokenizer.push_char('a');
+        tokenizer.push_char(' ');
+        tokenizer.push_char(' ');
+        tokenizer.push_char('b');
+        let tokens = tokenizer.complete();
+        assert_eq!(vec![
+            T("a".to_string()),
+            T("b".to_string()),
+        ], tokens);
     }
 }
