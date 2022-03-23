@@ -146,12 +146,8 @@ impl Div for Complex<f64> {
         let b = self.imaginary;
         let c = rhs.real;
         let d = rhs.imaginary;
-
-        println!("{} + {}i / {} + {}i\n\n", a, b, c, d);
-
         // (ac + bd)/(c^2 + d^2) + (bc-ad)/(c^2+d^2)i
         let c2d2 = c * c + d * d;
-
         Self {
             real: (a * c + b * d) / c2d2,
             imaginary: (b * c - a * d) / c2d2,
@@ -222,6 +218,9 @@ impl<T: Display + PartialEq + Zero + One + PartialOrd + Neg<Output=T> + Copy> Di
             }
             f.write_char('i')
         } else {
+            if !has_real {
+                f.write_fmt(format_args!("{}", self.real))?;
+            }
             f.write_str("")
         }
     }
