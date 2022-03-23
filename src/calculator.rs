@@ -233,4 +233,18 @@ mod calculator_tests {
     pub fn e() {
         assert_eq!(Ok(std::f64::consts::E), Calculator {}.calculate("e"))
     }
+
+    #[test]
+    pub fn automatic_multiplication() {
+        assert_eq!(Ok(12), Calculator {}.calculate("(3)(4)"));
+        assert_eq!(Ok(12), Calculator {}.calculate("(3)4"));
+        assert_eq!(Ok(12), Calculator {}.calculate("3(4)"));
+        assert_eq!(Ok(24), Calculator {}.calculate("(2)3(4)"));
+        assert_eq!(Ok(5), Calculator {}.calculate("(2)3-1"));
+    }
+
+    #[test]
+    pub fn multiplication_by_constant() {
+        assert_eq!(Ok(std::f64::consts::TAU), Calculator {}.calculate("2pi"))
+    }
 }

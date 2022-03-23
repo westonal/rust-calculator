@@ -1,12 +1,11 @@
 use core::fmt;
 use core::fmt::Formatter;
 use std::collections::VecDeque;
-use std::str::Chars;
 use crate::shunting_yard::{Associativity, ShuntingYardToken, ShuntType};
 
 enum Mode {
     None,
-
+    Number,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -81,12 +80,6 @@ impl TokenizerState {
         }
     }
 
-    fn push(&mut self, expression: &str) {
-        expression.chars().for_each(|c| {
-            self.push_char(c)
-        })
-    }
-
     fn push_char(&mut self, c: char) {
         match self.mode {
             Mode::None => {
@@ -95,8 +88,20 @@ impl TokenizerState {
                     self.end_node();
                     self.current_token.push(c);
                     self.end_node();
+                } else if c.is_numeric() {
+                    self.current_token.push(c);
+                    self.mode = Mode::Number;
                 } else {
                     self.current_token.push(c);
+                }
+            }
+            Mode::Number => {
+                if c.is_numeric() {
+                    self.current_token.push(c);
+                } else {
+                    self.end_node();
+                    self.mode = Mode::None;
+                    self.push_char(c);
                 }
             }
         }
@@ -235,6 +240,10 @@ impl ShuntingYardToken for Token {
             Token::CloseBrace => ShuntType::CloseBrace,
         }
     }
+
+    fn operand_separator() -> Option<Self> {
+        Some(Self::Multiply)
+    }
 }
 
 #[cfg(test)]
@@ -290,5 +299,16 @@ mod tokenizer_state_test {
             Plus,
             T("2".to_string()),
         ], tokens);
+    }
+
+    #[test]
+    fn numbers_followed_by_letters() {
+        let mut tokenizer = TokenizerState::new();
+        tokenizer.push_char('1');
+        tokenizer.push_char('2');
+        tokenizer.push_char('a');
+        tokenizer.push_char('b');
+        let tokens = tokenizer.complete();
+        assert_eq!(vec![T("12".to_string()), T("ab".to_string())], tokens);
     }
 }

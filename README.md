@@ -4,7 +4,7 @@ Features
 
 - [x] Addition/Subtraction
 - [x] Multiplication/Division
-  - [ ] Assume multiplication when two operands are adjacent e.g. (3)(4) = 3(4) = 12
+  - [x] Assume multiplication when two operands are adjacent e.g. (3)(4) = 3(4) = 12, 2pi = tau
 - [ ] Braces
   - [x] Basic
   - [x] Nested

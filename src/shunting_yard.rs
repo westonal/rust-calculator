@@ -48,6 +48,7 @@ impl<T: ShuntingYardToken, I: Iterator<Item=T>> Shunt<T, I> for I {
 pub struct ShuntingYard<T: ShuntingYardToken> {
     output_queue: VecDeque<T>,
     operator_stack: Vec<(T, ShuntType)>,
+    last_shunt_type: Option<ShuntType>,
 }
 
 impl<T: ShuntingYardToken> Default for ShuntingYard<T> {
@@ -61,11 +62,6 @@ pub enum Associativity {
     Left
 }
 
-struct ShuntOperator {
-    associativity: Associativity,
-    precedence: u8,
-}
-
 pub enum ShuntType {
     Operand,
     Operator {
@@ -76,8 +72,10 @@ pub enum ShuntType {
     CloseBrace,
 }
 
-pub trait ShuntingYardToken {
+pub trait ShuntingYardToken: Sized {
     fn shunt_type(&self) -> ShuntType;
+    /// When two operands have no token between them, this is the token that should be assumed
+    fn operand_separator() -> Option<Self>;
 }
 
 impl<T: ShuntingYardToken> ShuntingYard<T> {
@@ -85,14 +83,25 @@ impl<T: ShuntingYardToken> ShuntingYard<T> {
         Self {
             output_queue: Default::default(),
             operator_stack: Default::default(),
+            last_shunt_type: Default::default(),
         }
     }
 
     pub fn push(&mut self, token: T) {
         let shunt_type = token.shunt_type();
         match &shunt_type {
-            ShuntType::Operand => self.output_queue.push_back(token),
+            ShuntType::Operand => {
+                let previous_shunt_type = self.last_shunt_type.replace(shunt_type);
+                self.output_queue.push_back(token);
+                if let Some(ShuntType::Operand) = previous_shunt_type {
+                    if let Some(injected_separator_token) = <T as ShuntingYardToken>::operand_separator() {
+                        let injected_shunt_type = injected_separator_token.shunt_type();
+                        self.operator_stack.push((injected_separator_token, injected_shunt_type));
+                    }
+                }
+            }
             ShuntType::Operator { associativity: _o1associativity, precedence: o1precedence } => {
+                self.last_shunt_type = None;
                 while !self.operator_stack.is_empty() {
                     let (_, operator2) = self.operator_stack.last().unwrap();
                     match operator2 {
@@ -191,6 +200,10 @@ mod shunting_yard_tests {
                 _ => ShuntType::Operand
             }
         }
+
+        fn operand_separator() -> Option<Self> {
+            Some("*")
+        }
     }
 
     #[test]
@@ -204,8 +217,8 @@ mod shunting_yard_tests {
     fn two_tokens() {
         let mut yard = ShuntingYard::new();
         yard.push("1");
-        yard.push("2");
-        assert_eq!(vec!["1", "2"], yard.into_vec());
+        yard.push("+");
+        assert_eq!(vec!["1", "+"], yard.into_vec());
     }
 
     #[test]
@@ -291,7 +304,7 @@ mod shunting_yard_tests {
     }
 
     #[test]
-    fn bracket_test_preceeding_operators() {
+    fn bracket_test_preceding_operators() {
         let mut yard = ShuntingYard::new();
         yard.push("3");
         yard.push("*");
@@ -301,5 +314,13 @@ mod shunting_yard_tests {
         yard.push("2");
         yard.push(")");
         assert_eq!(vec!["3", "1", "2", "+", "*"], yard.into_vec());
+    }
+
+    #[test]
+    fn automatic_multiplication_of_adjacent_operands() {
+        let mut yard = ShuntingYard::new();
+        yard.push("3");
+        yard.push("4");
+        assert_eq!(vec!["3", "4", "*"], yard.into_vec());
     }
 }
