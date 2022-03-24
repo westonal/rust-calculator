@@ -1,6 +1,7 @@
 use core::fmt;
 use core::fmt::Formatter;
 use std::collections::VecDeque;
+
 use crate::shunting_yard::{Associativity, ShuntingYardToken, ShuntType};
 
 enum Mode {
@@ -16,6 +17,7 @@ pub enum Token {
     Multiply,
     Divide,
     Power,
+    Root,
     OpenBrace,
     CloseBrace,
 }
@@ -29,6 +31,7 @@ impl fmt::Display for Token {
             Token::Multiply => f.write_str("*"),
             Token::Divide => f.write_str("/"),
             Token::Power => f.write_str("^"),
+            Token::Root => f.write_str("√"),
             Token::OpenBrace => f.write_str("("),
             Token::CloseBrace => f.write_str(")"),
         }
@@ -74,6 +77,8 @@ impl TokenizerState {
                 self.tokens.push_back(Token::Divide)
             } else if string.as_str() == "^" {
                 self.tokens.push_back(Token::Power)
+            } else if string.as_str() == "√" {
+                self.tokens.push_back(Token::Root)
             } else {
                 self.tokens.push_back(Token::T(string));
             }
@@ -83,12 +88,12 @@ impl TokenizerState {
     fn push_char(&mut self, c: char) {
         match self.mode {
             Mode::None => {
-                if c ==' ' {
+                if c == ' ' {
                     self.end_node();
                     return;
                 }
                 // TODO: Annoying repeat 2/2
-                if c == '+' || c == '-' || c == '*' || c == 'x' || c == '/' || c == '^' || c == '(' || c == ')' {
+                if c == '+' || c == '-' || c == '*' || c == 'x' || c == '/' || c == '^' || c == '√' || c == '(' || c == ')' {
                     self.end_node();
                     self.current_token.push(c);
                     self.end_node();
@@ -100,7 +105,7 @@ impl TokenizerState {
                 }
             }
             Mode::Number => {
-                if c.is_numeric() {
+                if c.is_numeric() || c == '.' {
                     self.current_token.push(c);
                 } else {
                     self.end_node();
@@ -200,6 +205,11 @@ mod tokenizer_tests {
     }
 
     #[test]
+    fn root() {
+        expect_token("√", &Token::Root);
+    }
+
+    #[test]
     fn open_brace() {
         expect_token("(", &Token::OpenBrace);
     }
@@ -240,6 +250,7 @@ impl ShuntingYardToken for Token {
             Token::Multiply => ShuntType::Operator { associativity: Associativity::Left, precedence: 1 },
             Token::Divide => ShuntType::Operator { associativity: Associativity::Left, precedence: 1 },
             Token::Power => ShuntType::Operator { associativity: Associativity::Left, precedence: 2 },
+            Token::Root => ShuntType::Operator { associativity: Associativity::Left, precedence: 2 },
             Token::OpenBrace => ShuntType::OpenBrace,
             Token::CloseBrace => ShuntType::CloseBrace,
         }
@@ -254,6 +265,7 @@ impl ShuntingYardToken for Token {
 mod shunting_yard_integration_tests {
     use crate::shunting_yard::Shunt;
     use crate::tokenizer::Token::*;
+
     use super::*;
 
     #[test]
@@ -326,6 +338,18 @@ mod tokenizer_state_test {
         assert_eq!(vec![
             T("1".to_string()),
             T("2".to_string()),
+        ], tokens);
+    }
+
+    #[test]
+    fn allow_period() {
+        let mut tokenizer = TokenizerState::new();
+        tokenizer.push_char('1');
+        tokenizer.push_char('.');
+        tokenizer.push_char('2');
+        let tokens = tokenizer.complete();
+        assert_eq!(vec![
+            T("1.2".to_string()),
         ], tokens);
     }
 

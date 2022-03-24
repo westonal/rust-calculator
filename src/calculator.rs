@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::str::FromStr;
+
 use crate::math::Math;
 use crate::shunting_yard::Shunt;
 use crate::tokenizer::{Token, Tokenize};
@@ -69,6 +70,7 @@ impl<T> Memory<T> {
             Token::Multiply => { self.stack.push_back(left * right); }
             Token::Divide => { self.stack.push_back(left / right); }
             Token::Power => { self.stack.push_back(left.pow(right)); }
+            Token::Root => { self.stack.push_back(left.root(right)); }
             // TODO: have different set of tokens for input and output?
             //  Pain because will have to map them. This might be the cleanest solution
             Token::OpenBrace => { panic!() }

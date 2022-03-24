@@ -11,9 +11,9 @@ Features
   - [x] Nested
   - [ ] Match checking
   - [ ] Completion/Correction
-- [ ] Powers
+- [x] Powers
   - [x] Real
-  - [ ] Complex
+  - [x] Complex (Uses num crate)
 - [ ] Roots
 - [ ] Functions
   - [ ] Trigonometry
@@ -49,3 +49,9 @@ TODO
    - [x] Token parse error
    - [ ] Mismatched brackets
    - [ ] Stack size
+
+Errors
+===
+
+ - [ ] Complex:
+   - [ ] (0-1)^0.5 = 1 (should be i)

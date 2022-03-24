@@ -1,8 +1,11 @@
 use std::fmt::{Display, Formatter, Write};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::str::FromStr;
+
+use num::pow::Pow as NumPow;
+
 use crate::FromStrValue;
-use crate::math::{CommonMath, Pow};
+use crate::math::{Inv, Pow};
 
 #[cfg(test)]
 mod complex_number_tests {
@@ -97,8 +100,6 @@ impl One for f64 {
     }
 }
 
-impl CommonMath<Complex<f64>> for Complex<f64> {}
-
 impl Add for Complex<f64> {
     type Output = Complex<f64>;
 
@@ -156,14 +157,18 @@ impl Div for Complex<f64> {
 }
 
 impl Pow for Complex<f64> {
-    type Output = ();
-
     fn pow(self, rhs: Self) -> Self {
-        if rhs.has_imaginary() || self.has_imaginary() {
-            todo!()
-        } else {
-            Complex::real(self.real.pow(rhs.real))
-        }
+        // TODO write into if we use this elsewhere
+        let lhs = num::Complex { im: self.imaginary, re: self.real };
+        let rhs = num::Complex { im: rhs.imaginary, re: rhs.real };
+        let complex = lhs.pow(rhs);
+        Complex::new(complex.re, complex.im)
+    }
+}
+
+impl Inv for Complex<f64> {
+    fn inv(self) -> Self {
+        Complex::real(1f64).div(self)
     }
 }
 

@@ -6,5 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# For complex
+num = "0.4.0"
+
 # For CLI
 rustyline = "9.1.2"

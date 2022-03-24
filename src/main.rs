@@ -2,9 +2,11 @@ extern crate core;
 
 use std::env;
 use std::fmt::Display;
-use std::ops::Div;
+
+use rustyline::config::Configurer;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
+
 use crate::calculator::{Calculator, FromStrValue};
 use crate::complex::Complex;
 use crate::math::Math;
@@ -43,11 +45,16 @@ fn terminal_mode<T: Math<T> + Display + FromStrValue>() {
     if editor.load_history("history.txt").is_err() {
         println!("No previous history.");
     }
+    let mut last_value: Option<String> = None;
     loop {
         let prompt = "> ";
         // TODO COLORS?
         // editor.set_color_mode(ColorMode::Enabled);
-        let line = editor.readline(prompt);
+        let line =
+            match &last_value {
+                Some(value) => editor.readline_with_initial(prompt, (value, "")),
+                None => editor.readline(prompt),
+            };
         match line {
             Ok(line) => {
                 if line.is_empty() {
@@ -75,9 +82,11 @@ fn terminal_mode<T: Math<T> + Display + FromStrValue>() {
                 match result {
                     Ok(value) => {
                         println!("{}\r{}{} = {}", BACKSPACE, prompt, line, value);
+                        last_value = Some(format!("{}", value));
                     }
                     Err(error) => {
                         println!("Error: {}", error);
+                        last_value = Some(line.to_string());
                     }
                 }
             }
