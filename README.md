@@ -6,6 +6,7 @@ Features
   - [ ] Unary minus
 - [x] Multiplication/Division
   - [x] Assume multiplication when two operands are adjacent e.g. (3)(4) = 3(4) = 12, 2pi = tau
+  - [x] Unary % (/100)
 - [ ] Braces
   - [x] Basic
   - [x] Nested
@@ -14,7 +15,8 @@ Features
 - [x] Powers
   - [x] Real
   - [x] Complex (Uses num crate)
-- [ ] Roots
+- [x] Roots
+  - [ ] Unary square root √x (without 2√x)
 - [ ] Functions
   - [ ] Trigonometry
 - [x] Constants (in f64 context)

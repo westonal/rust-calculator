@@ -5,7 +5,7 @@ use std::str::FromStr;
 use num::pow::Pow as NumPow;
 
 use crate::FromStrValue;
-use crate::math::{Inv, Pow};
+use crate::math::{Inv, Percent, Pow};
 
 #[cfg(test)]
 mod complex_number_tests {
@@ -153,6 +153,12 @@ impl Div for Complex<f64> {
             real: (a * c + b * d) / c2d2,
             imaginary: (b * c - a * d) / c2d2,
         }
+    }
+}
+
+impl Percent for Complex<f64> {
+    fn percent(self) -> Self {
+        self / Complex::real(100f64)
     }
 }
 

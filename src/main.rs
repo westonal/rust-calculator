@@ -66,6 +66,7 @@ fn terminal_mode<T: Math<T> + Display + FromStrValue>() {
                     println!("  Calculator - Alan Evans 2022");
                     println!("  Terminal mode");
                     println!("    Enter mathematical expression and press enter");
+                    println!("    up    - Previous entries");
                     println!("    clear - Clear expression history");
                     println!("    help  - this message");
                     println!("    enter - Exit terminal mode");
@@ -81,8 +82,17 @@ fn terminal_mode<T: Math<T> + Display + FromStrValue>() {
                 let result = calculator.calculate::<T>(&line);
                 match result {
                     Ok(value) => {
-                        println!("{}\r{}{} = {}", BACKSPACE, prompt, line, value);
-                        last_value = Some(format!("{}", value));
+                        if Some(&line) == last_value.as_ref() {
+                            println!("{}\r{}", BACKSPACE, BACKSPACE);
+                        }else {
+                            println!("{}\r{}{} = {}", BACKSPACE, prompt, line, value);
+                        }
+                        let new_last_value = Some(format!("{}", value));
+                        last_value = if new_last_value == last_value {
+                            None
+                        } else {
+                            new_last_value
+                        };
                     }
                     Err(error) => {
                         println!("Error: {}", error);

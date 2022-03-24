@@ -61,26 +61,54 @@ impl<T> Memory<T> {
     fn push_operator(&mut self, t: Token) -> Result<(), String>
         where T: FromStrValue + Math<T>
     {
-        let right = self.stack.pop_back().ok_or("No rhs")?;
-        let left = self.stack.pop_back().ok_or("No lhs")?;
-        match t {
-            Token::T(_) => { panic!() }
-            Token::Plus => { self.stack.push_back(left + right); }
-            Token::Minus => { self.stack.push_back(left - right); }
-            Token::Multiply => { self.stack.push_back(left * right); }
-            Token::Divide => { self.stack.push_back(left / right); }
-            Token::Power => { self.stack.push_back(left.pow(right)); }
-            Token::Root => { self.stack.push_back(left.root(right)); }
+        let n = Self::operand_count(&t);
+        let mut top_n = self.pop_n(n)?;
+
+        let left = top_n.pop().ok_or("No lhs");
+        let right = top_n.pop().ok_or("No rhs");
+
+        let value = match t {
+            Token::T(_) => panic!(),
+            Token::Plus => left? + right?,
+            Token::Minus => left? - right?,
+            Token::Multiply => left? * right?,
+            Token::Divide => left? / right?,
+            Token::Percent => left?.percent(),
+            Token::Power => left?.pow(right?),
+            Token::Root => left?.root(right?),
             // TODO: have different set of tokens for input and output?
             //  Pain because will have to map them. This might be the cleanest solution
-            Token::OpenBrace => { panic!() }
-            Token::CloseBrace => { panic!() }
+            Token::OpenBrace => panic!(),
+            Token::CloseBrace => panic!(),
         };
+
+        self.stack.push_back(value);
+
         Ok(())
     }
 
     fn top(mut self) -> Result<T, String> {
         self.stack.pop_back().ok_or_else(|| "Empty stack".to_string())
+    }
+    fn pop_n(&mut self, n: u8) -> Result<Vec<T>, String> {
+        (0..n).map(|_| self.stack.pop_back().ok_or_else(|| "Empty stack".to_string())).collect()
+    }
+
+    fn operand_count(t: &Token) -> u8 {
+        match t {
+            Token::T(_) => { panic!() }
+            Token::Plus => 2,
+            Token::Minus => 2,
+            Token::Multiply => 2,
+            Token::Divide => 2,
+            Token::Percent => 1,
+            Token::Power => 2,
+            Token::Root => 2,
+            // TODO: have different set of tokens for input and output?
+            //  Pain because will have to map them. This might be the cleanest solution
+            Token::OpenBrace => { panic!() }
+            Token::CloseBrace => { panic!() }
+        }
     }
 }
 
@@ -132,52 +160,63 @@ mod calculator_tests {
 
     #[test]
     pub fn add() {
-        assert_eq!(Ok(3), Calculator {}.calculate("1+2"))
+        assert_eq!(Ok(3), Calculator {}.calculate("1+2"));
     }
 
     #[test]
     pub fn subtract() {
-        assert_eq!(Ok(2), Calculator {}.calculate("5-3"))
+        assert_eq!(Ok(2), Calculator {}.calculate("5-3"));
     }
 
     #[test]
     pub fn multiply() {
-        assert_eq!(Ok(18), Calculator {}.calculate("3*6"))
+        assert_eq!(Ok(18), Calculator {}.calculate("3*6"));
     }
 
     #[test]
     pub fn subtract_into_negative() {
-        assert_eq!(Ok(-1i32), Calculator {}.calculate("2-3"))
+        assert_eq!(Ok(-1i32), Calculator {}.calculate("2-3"));
     }
 
     #[test]
     pub fn integer_divide() {
-        assert_eq!(Ok(3), Calculator {}.calculate("7/2"))
+        assert_eq!(Ok(3), Calculator {}.calculate("7/2"));
     }
 
     #[test]
     pub fn floating_point_divide() {
-        assert_eq!(Ok(3.5), Calculator {}.calculate("7/2"))
+        assert_eq!(Ok(3.5), Calculator {}.calculate("7/2"));
     }
 
     #[test]
     pub fn unnecessary_brackets() {
-        assert_eq!(Ok(7), Calculator {}.calculate("1+(3*2)"))
+        assert_eq!(Ok(7), Calculator {}.calculate("1+(3*2)"));
     }
 
     #[test]
     pub fn brackets_changing_precedence() {
-        assert_eq!(Ok(8), Calculator {}.calculate("(1+3)*2"))
+        assert_eq!(Ok(8), Calculator {}.calculate("(1+3)*2"));
     }
 
     #[test]
     pub fn two_braces() {
-        assert_eq!(Ok(12), Calculator {}.calculate("(1+3)*(5-2)"))
+        assert_eq!(Ok(12), Calculator {}.calculate("(1+3)*(5-2)"));
     }
 
     #[test]
     pub fn power() {
-        assert_eq!(Ok(16), Calculator {}.calculate("2^4"))
+        assert_eq!(Ok(16), Calculator {}.calculate("2^4"));
+    }
+
+    #[test]
+    pub fn root() {
+        assert_eq!(Ok(4f64), Calculator {}.calculate("2√16"));
+        assert_eq!(Ok(3f64), Calculator {}.calculate("3√27"));
+    }
+
+    #[test]
+    pub fn percent() {
+        assert_eq!(Ok(0.95), Calculator {}.calculate("95%"));
     }
 
     #[test]

@@ -16,6 +16,7 @@ pub enum Token {
     Minus,
     Multiply,
     Divide,
+    Percent,
     Power,
     Root,
     OpenBrace,
@@ -30,6 +31,7 @@ impl fmt::Display for Token {
             Token::Minus => f.write_str("-"),
             Token::Multiply => f.write_str("*"),
             Token::Divide => f.write_str("/"),
+            Token::Percent => f.write_str("%"),
             Token::Power => f.write_str("^"),
             Token::Root => f.write_str("√"),
             Token::OpenBrace => f.write_str("("),
@@ -75,6 +77,8 @@ impl TokenizerState {
                 self.tokens.push_back(Token::Multiply)
             } else if string.as_str() == "/" {
                 self.tokens.push_back(Token::Divide)
+            } else if string.as_str() == "%" {
+                self.tokens.push_back(Token::Percent)
             } else if string.as_str() == "^" {
                 self.tokens.push_back(Token::Power)
             } else if string.as_str() == "√" {
@@ -93,7 +97,7 @@ impl TokenizerState {
                     return;
                 }
                 // TODO: Annoying repeat 2/2
-                if c == '+' || c == '-' || c == '*' || c == 'x' || c == '/' || c == '^' || c == '√' || c == '(' || c == ')' {
+                if c == '+' || c == '-' || c == '*' || c == 'x' || c == '/' || c == '%' || c == '^' || c == '√' || c == '(' || c == ')' {
                     self.end_node();
                     self.current_token.push(c);
                     self.end_node();
@@ -200,6 +204,11 @@ mod tokenizer_tests {
     }
 
     #[test]
+    fn percentage() {
+        expect_token("%", &Token::Percent);
+    }
+
+    #[test]
     fn power() {
         expect_token("^", &Token::Power);
     }
@@ -249,6 +258,7 @@ impl ShuntingYardToken for Token {
             Token::Minus => ShuntType::Operator { associativity: Associativity::Left, precedence: 0 },
             Token::Multiply => ShuntType::Operator { associativity: Associativity::Left, precedence: 1 },
             Token::Divide => ShuntType::Operator { associativity: Associativity::Left, precedence: 1 },
+            Token::Percent => ShuntType::Operator { associativity: Associativity::Left, precedence: 1 },
             Token::Power => ShuntType::Operator { associativity: Associativity::Left, precedence: 2 },
             Token::Root => ShuntType::Operator { associativity: Associativity::Left, precedence: 2 },
             Token::OpenBrace => ShuntType::OpenBrace,
